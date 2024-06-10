@@ -196,7 +196,7 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
             showMostSimilarPost(mostSimilarPost)
         }
     }
-
+    
     func detectObjectsInImage(_ image: UIImage) -> [VNRecognizedObjectObservation] {
         guard let ciImage = CIImage(image: image) else {
             return []
@@ -217,7 +217,7 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
             return []
         }
     }
-
+    
     
     func calculateSimilarity(_ detectedObjects: [VNRecognizedObjectObservation], _ postObservations: [VNRecognizedObjectObservation]) -> Float {
         // 두 객체 목록 간의 유사도를 계산하는 로직 (예제: 단순히 객체 수를 비교)
@@ -233,7 +233,7 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
         
         return Float(intersection.count) / Float(union.count)
     }
-
+    
     func loadCommunityPosts() -> [Post] {
         if let savedData = UserDefaults.standard.data(forKey: "posts"),
            let decodedPosts = try? JSONDecoder().decode([Post].self, from: savedData) {
@@ -241,7 +241,7 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
         }
         return []
     }
-
+    
     func showMostSimilarPost(_ post: Post) {
         if let image = post.image {
             let alert = UIAlertController(title: "가장 유사한 사진", message: nil, preferredStyle: .alert)
@@ -278,108 +278,122 @@ struct ContentView: View {
     @State private var isLoggedIn: Bool = false
     @State private var posts: [Post] = []
 
-    let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
-    
     var body: some View {
         NavigationView {
-            if showMainView {
-                VStack {
-                    Spacer()
-                    Image("logo") // 로고 이미지 파일 이름을 "logo"로 설정
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 200, height: 200)
-                        .scaleEffect(logoScale)
-                        .opacity(logoOpacity)
-                        .onAppear {
-                            withAnimation(.easeIn(duration: 1.5)) {
-                                self.logoScale = 1.0
-                                self.logoOpacity = 1.0
-                            }
-                        }
-                    
-                    Text("Object Detection")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding()
-                        .opacity(logoOpacity)
-                        .onAppear {
-                            withAnimation(.easeIn(duration: 1.5).delay(0.5)) {
-                                self.logoOpacity = 1.0
-                            }
-                        }
-                    
-                    Spacer()
+            ZStack {
+                if showMainView || !showMainView && !isLoggedIn || isLoggedIn {
+                    Color.yellow
+                        .edgesIgnoringSafeArea(.all)
                 }
-                .background(Color.cyan)
-                .edgesIgnoringSafeArea(.all)
-                .onAppear {
+
+                VStack {
+                    if showMainView {
+                        Spacer()
+                        Image("logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 200, height: 200)
+                            .scaleEffect(logoScale)
+                            .opacity(logoOpacity)
+                            .onAppear {
+                                withAnimation(.easeIn(duration: 1.5)) {
+                                    self.logoScale = 1.0
+                                    self.logoOpacity = 1.0
+                                }
+                            }
+
+                        Text("찾았Dog")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .padding()
+                            .opacity(logoOpacity)
+                            .onAppear {
+                                withAnimation(.easeIn(duration: 1.5).delay(0.5)) {
+                                    self.logoOpacity = 1.0
+                                }
+                            }
+
+                        Spacer()
+                    } else if isLoggedIn {
+                        VStack {
+                            Spacer().frame(height: 50)
+                            
+                            Text("찾았Dog")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .padding()
+
+                            Spacer()
+
+                            HStack(spacing: 0) { // 간격을 최소화했습니다.
+                                IconView(imageName: "logo2", title: "애완견", subtitle: "등록하기", destination: AnyView(CameraViewControllerRepresentable(image: $cameraImage)))
+                                IconView(imageName: "logo2", title: "커뮤니티", subtitle: "입장하기", destination: AnyView(CommunityView(posts: $posts)))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 10) // 세로 간격을 줄였습니다.
+
+                            Spacer()
+                        }
+                        .navigationBarHidden(true)
+                    } else {
+                        LoginViewControllerRepresentable(isLoggedIn: $isLoggedIn)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    Color.yellow
+                        .edgesIgnoringSafeArea(.all)
+                )
+            }
+            .onAppear {
+                if showMainView {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                         withAnimation {
                             showMainView = false
                         }
                     }
                 }
-                .navigationBarHidden(true)
-                
-            } else if isLoggedIn {
-                VStack {
-                    Spacer().frame(height: 50)
-                    
-                    Text("Object Detection")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .padding()
-                    
-                    Spacer()
-                    
-                    LazyVGrid(columns: columns, spacing: 20) {
-                        NavigationLink(destination: CameraViewControllerRepresentable(image: $cameraImage)) {
-                            Text("카메라")
-                                .font(.title)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.indigo)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        
-                        NavigationLink(destination: GalleryViewControllerRepresentable()) {
-                            Text("갤러리")
-                                .font(.title)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.purple)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        
-                        NavigationLink(destination: CommunityView(posts: $posts)) {
-                            Text("커뮤니티")
-                                .font(.title)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.pink)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    }
-                    .padding(.bottom, 10)
-                    
-                    Spacer()
-                }
-                .navigationBarHidden(true)
-            } else {
-                LoginViewControllerRepresentable(isLoggedIn: $isLoggedIn)
             }
         }
-        .edgesIgnoringSafeArea(.all)
     }
 }
+
+
+struct IconView: View {
+    var imageName: String
+    var title: String
+    var subtitle: String
+    var destination: AnyView
+
+    var body: some View {
+        NavigationLink(destination: destination) {
+            VStack(spacing: 5) { // 내부 간격을 조정했습니다.
+                Image(imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                
+                VStack(alignment: .center, spacing: 5) { // 내부 간격을 조정했습니다.
+                    Text(title)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                    Text(subtitle)
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 10) // 좌우 패딩을 줄였습니다.
+                .background(Color.white)
+                .cornerRadius(15)
+                .shadow(radius: 10)
+                .frame(width: 160, height: 120) // 전체 크기를 줄였습니다.
+            }
+            .padding(.horizontal, 10) // 외부 패딩을 줄였습니다.
+        }
+    }
+}
+
 
 
 
@@ -470,14 +484,14 @@ struct CommunityView: View {
     @State private var isFeedViewActive = false
     @State private var editingPost: Post? = nil
     @EnvironmentObject var userManager: UserManager
-    
+    @State private var navigateToFeedView = false  // 상태 변수 선언
     private let postsKey = "posts"
     
     init(posts: Binding<[Post]>, editingPost: Post? = nil) {
         self._posts = posts
         self._editingPost = State(initialValue: editingPost)
     }
-
+    
     var body: some View {
         VStack {
             Text("커뮤니티")
@@ -532,6 +546,7 @@ struct CommunityView: View {
                 } else {
                     uploadContent()
                 }
+                navigateToFeedView = true
             }) {
                 Text(editingPost == nil ? "확인" : "업데이트")
                     .font(.title)
@@ -543,9 +558,10 @@ struct CommunityView: View {
             .padding(.top)
             
             Spacer()
-
+            
             NavigationLink(destination: FeedView(posts: $posts)) {
                 Text("피드로 가기")
+                
                     .font(.title)
                     .padding()
                     .background(Color.blue)
@@ -563,6 +579,9 @@ struct CommunityView: View {
                 text = editingPost.text
                 if let imageData = editingPost.imageData {
                     image = UIImage(data: imageData)
+                }
+                NavigationLink(destination: FeedView(posts: $posts), isActive: $navigateToFeedView) {
+                    EmptyView()
                 }
             }
         }
@@ -639,6 +658,8 @@ struct FeedView: View {
                             
                             Button("삭제") {
                                 deletePost(post)
+                                //showCommunityView = false
+                                
                             }
                             .foregroundColor(.red)
                         }
@@ -758,27 +779,55 @@ struct LoginViewControllerRepresentable: View {
     @State private var loginErrorMessage: String? = nil
     @Binding var isLoggedIn: Bool
     @EnvironmentObject var userManager: UserManager
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                TextField("아이디", text: $username)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
 
-                SecureField("비밀번호", text: $password)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+    var body: some View {
+        ZStack {
+            Image("Rectangle")
+                .resizable()
+                .scaledToFill()
+                .edgesIgnoringSafeArea(.all)
+
+            VStack {
+                Spacer()
+
+                // 커스텀 타이틀
+                Text("로그인")
+                    .font(.system(size: 40, weight: .bold)) // 원하는 글꼴 크기와 스타일 지정
+                    .foregroundColor(.black)
+                    .padding(.bottom, 20)
+
+                // 로고 이미지 추가
+                Image("logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .padding(.bottom, 20)
+
+                // 아이디 입력 필드
+                TextField("아이디", text: $username)
                     .padding()
-                
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .padding([.leading, .trailing], 20)
+
+                // 비밀번호 입력 필드
+                SecureField("비밀번호", text: $password)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .padding([.leading, .trailing], 20)
+
+                // 로그인 버튼
                 Button(action: {
                     login()
                 }) {
                     Text("로그인")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
+                        .background(Color.white)
+                        .foregroundColor(.black)
                         .cornerRadius(10)
+                        .padding([.leading, .trailing], 20)
                 }
                 .padding()
 
@@ -788,6 +837,7 @@ struct LoginViewControllerRepresentable: View {
                         .padding()
                 }
 
+                // 회원가입 버튼
                 Button(action: {
                     showSignUp = true
                 }) {
@@ -800,13 +850,12 @@ struct LoginViewControllerRepresentable: View {
                 Spacer()
             }
             .padding()
-            .navigationBarTitle("로그인")
             .sheet(isPresented: $showSignUp) {
                 SignUpView(showSignUp: $showSignUp, isLoggedIn: $isLoggedIn)
             }
         }
     }
-    
+
     private func login() {
         if let userData = UserDefaults.standard.data(forKey: username),
            let savedUser = try? JSONDecoder().decode(User.self, from: userData),
@@ -819,6 +868,10 @@ struct LoginViewControllerRepresentable: View {
     }
 }
 
+
+
+
+
 struct SignUpView: View {
     @Binding var showSignUp: Bool
     @Binding var isLoggedIn: Bool
@@ -827,13 +880,13 @@ struct SignUpView: View {
     @State private var confirmPassword: String = ""
     @State private var signUpErrorMessage: String? = nil
     @EnvironmentObject var userManager: UserManager
-
+    
     var body: some View {
         VStack {
             TextField("새 아이디", text: $newUsername)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
-
+            
             SecureField("새 비밀번호", text: $newPassword)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
@@ -859,7 +912,7 @@ struct SignUpView: View {
                     .foregroundColor(.red)
                     .padding()
             }
-
+            
             Spacer()
         }
         .padding()
@@ -886,9 +939,11 @@ struct SignUpView: View {
 
 
 
+
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
             .environmentObject(UserManager())
     }
 }
+
